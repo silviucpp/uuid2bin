@@ -43,21 +43,34 @@ inline int hexchar_to_int(char c)
     return -1;
 }
 
-bool hexlify_uuid(const char input[kUuidBinLength], std::string& output)
+inline int hexxing(std::string& output, int position, int ch)
 {
     static char hexValues[] = "0123456789abcdef";
-    output.resize(kUuidLength);
+    output[position++] = hexValues[(ch >> 4) & 0xf];
+    output[position++] = hexValues[ch & 0xf];
+    return position;
+}
+
+bool hexlify_uuid(const char input[kUuidBinLength], std::string& output, bool include_dash)
+{
+    output.resize(include_dash ? kUuidLength : kUuidLengthNoDash);
 
     int j = 0;
 
-    for (int i = 0; i < kUuidBinLength; ++i)
+    if(include_dash)
     {
-        int ch = input[i];
-        output[j++] = hexValues[(ch >> 4) & 0xf];
-        output[j++] = hexValues[ch & 0xf];
+        for (int i = 0; i < kUuidBinLength; ++i)
+        {
+            j = hexxing(output, j, input[i]);
 
-        if(j == 8 || j == 13 || j == 18 || j == 23)
-            output[j++] = '-';
+            if(j == 8 || j == 13 || j == 18 || j == 23)
+                output[j++] = '-';
+        }
+    }
+    else
+    {
+        for (int i = 0; i < kUuidBinLength; ++i)
+            j = hexxing(output, j, input[i]);
     }
 
     return true;
@@ -98,7 +111,7 @@ bool uuid2bin(const std::string& uuid, std::string& out)
     return unhexlify_uuid(output, out);
 }
 
-bool bin2uuid(const std::string& bin, std::string& out)
+bool bin2uuid(const std::string& bin, std::string& out, bool include_dash)
 {
     if(bin.length() != kUuidBinLength)
         return false;
@@ -111,7 +124,7 @@ bool bin2uuid(const std::string& bin, std::string& out)
     memcpy(temp+8, bin.data()+8, 2);
     memcpy(temp+10, bin.data()+10, 6);
 
-    return hexlify_uuid(temp, out);
+    return hexlify_uuid(temp, out, include_dash);
 }
 
 }
@@ -170,15 +183,21 @@ my_bool bin_to_uuid_init(UDF_INIT* initid, UDF_ARGS* args, char* message)
 {
     UNUSED(initid);
 
-    if (args->arg_count != 1)
+    if (args->arg_count < 1)
     {
-        strcpy(message, "BIN_TO_UUID requires one argument");
+        strcpy(message, "BIN_TO_UUID requires at least one argument");
         return 1;
     }
 
     if (args->arg_type[0] != STRING_RESULT)
     {
-        strcpy(message,"BIN_TO_UUID requires blob argument");
+        strcpy(message,"BIN_TO_UUID requires first argument as binary");
+        return 1;
+    }
+
+    if (args->arg_count == 2 && args->arg_type[1] != INT_RESULT)
+    {
+        strcpy(message,"BIN_TO_UUID requires second argument as integer");
         return 1;
     }
 
@@ -202,10 +221,12 @@ const char* bin_to_uuid(UDF_INIT* initid, UDF_ARGS* args, char* result, unsigned
         return NULL;
     }
 
+    bool include_dash = args->arg_count == 2 ? *reinterpret_cast<long long*>(args->args[1]) : true;
+
     std::string bin_uuid(args->args[0], args->lengths[0]);
     std::string out;
 
-    if(!bin2uuid(bin_uuid, out))
+    if(!bin2uuid(bin_uuid, out, include_dash))
     {
         *is_error = 1;
         return NULL;

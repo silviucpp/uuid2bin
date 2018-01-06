@@ -10,16 +10,16 @@ As described in the above articles there are few problems with UUID:
 - InnoDB stores data in the PRIMARY KEY order and all the secondary keys also contain PRIMARY KEY. So having UUID as PRIMARY KEY makes the index bigger which can not be fit into the memory
 - Inserts are random and the data is scattered.
 
-The articles explains how to store UUID in an efficient way by re-arranging timestamp part of UUID. 
+The articles explains how to store UUID in an efficient way by re-arranging timestamp part of UUID.
 
 #### API
 
-This module includes two functions to convert a UUID into the ordered binary format and the other way around. 
+This module includes two functions to convert a UUID into the ordered binary format and the other way around.
 
 The functions are:
 - `uuid_to_bin` - convert a uuid string into the ordered binary format
-- `bin_to_uuid` - convert the ordered binary format into the uuid string 
- 
+- `bin_to_uuid` - convert the ordered binary format into the uuid string  (you can use a second parameter in case you don't want the dashes as well)
+
 #### Compilation
 
 Just run `make compile` in the project root. This should work on linux and Mac OS X. Compiling scripts are not
@@ -27,12 +27,12 @@ tested for other platforms.
 
 #### Installation
 
-After you compile you must install it and tell MySQL about it ([More details][3]). 
-First you need to locate the plugin directory. This directory is given by the value of the `plugin_dir` system variable. 
+After you compile you must install it and tell MySQL about it ([More details][3]).
+First you need to locate the plugin directory. This directory is given by the value of the `plugin_dir` system variable.
 Usually located in `/usr/lib/mysql/plugin/` in linux. Use `SHOW VARIABLES LIKE 'plugin_dir';` to locate this.
- 
+
 - Copy the shared object to the server's plugin directory (see above) and name it `uuid2bin.so`
-- Inform mysql about the new functions by running: 
+- Inform mysql about the new functions by running:
 
 ```sql
 CREATE FUNCTION uuid_to_bin RETURNS STRING SONAME 'uuid2bin.so';
@@ -43,6 +43,7 @@ CREATE FUNCTION bin_to_uuid RETURNS STRING SONAME 'uuid2bin.so';
 
 ```
 SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-0040f4311e29')) = '6ccd780c-baba-1026-9564-0040f4311e29';
+SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-0040f4311e29'), 0) = '6ccd780cbaba102695640040f4311e29';
 SELECT BIN_TO_UUID(UUID_TO_BIN(NULL)) IS NULL;
 SELECT BIN_TO_UUID(UUID_TO_BIN('invalid')) IS NULL;
 ```
@@ -60,8 +61,8 @@ CREATE FUNCTION UuidToBin(_uuid BINARY(36))
         RETURNS BINARY(16)
         LANGUAGE SQL  DETERMINISTIC  CONTAINS SQL  SQL SECURITY INVOKER
     RETURN
-        UNHEX(CONCAT(SUBSTR(_uuid, 15, 4), SUBSTR(_uuid, 10, 4), 
-                     SUBSTR(_uuid,  1, 8), SUBSTR(_uuid, 20, 4), 
+        UNHEX(CONCAT(SUBSTR(_uuid, 15, 4), SUBSTR(_uuid, 10, 4),
+                     SUBSTR(_uuid,  1, 8), SUBSTR(_uuid, 20, 4),
                      SUBSTR(_uuid, 25) ));
 
 CREATE FUNCTION UuidFromBin(_bin BINARY(16))
@@ -99,7 +100,7 @@ SELECT BENCHMARK(@loops, UuidFromBin(@bin));
 
 ###### Conclusion
 
-As expected the UDF versions are much faster than the stored functions. 
+As expected the UDF versions are much faster than the stored functions.
 
 
 [1]:https://mariadb.com/kb/en/library/guiduuid-performance/
