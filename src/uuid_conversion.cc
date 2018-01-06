@@ -95,18 +95,29 @@ bool unhexlify_uuid(const char input[kUuidLengthNoDash], std::string& output)
     return true;
 }
 
-bool uuid2bin(const std::string& uuid, std::string& out)
+bool uuid2bin(const std::string& uuid, std::string& out, bool has_dash)
 {
-    if(uuid.length() != kUuidLength)
+    if(uuid.length() != (has_dash ? kUuidLength : kUuidLengthNoDash))
         return false;
 
     char output[kUuidLengthNoDash];
 
-    memcpy(output, uuid.c_str()+14, 4);
-    memcpy(output+4, uuid.c_str()+9, 4);
-    memcpy(output+8, uuid.c_str(), 8);
-    memcpy(output+16, uuid.c_str()+19, 4);
-    memcpy(output+20, uuid.c_str()+24, 12);
+    if(has_dash)
+    {
+        memcpy(output, uuid.c_str()+14, 4);
+        memcpy(output+4, uuid.c_str()+9, 4);
+        memcpy(output+8, uuid.c_str(), 8);
+        memcpy(output+16, uuid.c_str()+19, 4);
+        memcpy(output+20, uuid.c_str()+24, 12);
+    }
+    else
+    {
+        memcpy(output, uuid.c_str()+12, 4);
+        memcpy(output+4, uuid.c_str()+8, 4);
+        memcpy(output+8, uuid.c_str(), 8);
+        memcpy(output+16, uuid.c_str()+16, 4);
+        memcpy(output+20, uuid.c_str()+20, 12);
+    }
 
     return unhexlify_uuid(output, out);
 }
@@ -133,15 +144,21 @@ my_bool uuid_to_bin_init(UDF_INIT* initid, UDF_ARGS* args, char* message)
 {
     UNUSED(initid);
 
-    if (args->arg_count != 1)
+    if (args->arg_count < 1)
     {
-        strcpy(message, "UUID_TO_BIN requires one argument");
+        strcpy(message, "UUID_TO_BIN requires at least one argument");
         return 1;
     }
 
     if (args->arg_type[0] != STRING_RESULT)
     {
         strcpy(message,"UUID_TO_BIN requires string argument");
+        return 1;
+    }
+
+    if (args->arg_count == 2 && args->arg_type[1] != INT_RESULT)
+    {
+        strcpy(message,"UUID_TO_BIN requires second argument as integer");
         return 1;
     }
 
@@ -165,10 +182,12 @@ const char* uuid_to_bin(UDF_INIT* initid, UDF_ARGS* args, char* result, unsigned
         return NULL;
     }
 
+    bool has_dash = args->arg_count == 2 ? *reinterpret_cast<long long*>(args->args[1]) : true;
+
     std::string uuid(args->args[0], args->lengths[0]);
     std::string out;
 
-    if(!uuid2bin(uuid, out))
+    if(!uuid2bin(uuid, out, has_dash))
     {
         *is_error = 1;
         return NULL;

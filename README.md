@@ -18,7 +18,10 @@ This module includes two functions to convert a UUID into the ordered binary for
 
 The functions are:
 - `uuid_to_bin` - convert a uuid string into the ordered binary format
-- `bin_to_uuid` - convert the ordered binary format into the uuid string  (you can use a second parameter in case you don't want the dashes as well)
+- `bin_to_uuid` - convert the ordered binary format into the uuid string
+
+Both function accept as second parameter 0 or 1 in order to know if dash is included. Sometimes in applications
+you might need the UUID without the dashes. By default dash is expected.
 
 #### Compilation
 
@@ -44,6 +47,8 @@ CREATE FUNCTION bin_to_uuid RETURNS STRING SONAME 'uuid2bin.so';
 ```
 SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-0040f4311e29')) = '6ccd780c-baba-1026-9564-0040f4311e29';
 SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-0040f4311e29'), 0) = '6ccd780cbaba102695640040f4311e29';
+SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780cbaba102695640040f4311e29', 0), 0) = '6ccd780cbaba102695640040f4311e29';
+SELECT BIN_TO_UUID(UUID_TO_BIN('6ccd780cbaba102695640040f4311e29', 0), 1) = '6ccd780c-baba-1026-9564-0040f4311e29';
 SELECT BIN_TO_UUID(UUID_TO_BIN(NULL)) IS NULL;
 SELECT BIN_TO_UUID(UUID_TO_BIN('invalid')) IS NULL;
 ```
