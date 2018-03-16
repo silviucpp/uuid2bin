@@ -9,9 +9,9 @@
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
-static const int32_t kUuidLength = 36;
-static const int32_t kUuidLengthNoDash = 32;
-static const int32_t kUuidBinLength = 16;
+static const uint32_t kUuidLength = 36;
+static const uint32_t kUuidLengthNoDash = 32;
+static const uint32_t kUuidBinLength = 16;
 
 extern "C" {
 
@@ -59,7 +59,7 @@ bool hexlify_uuid(const char input[kUuidBinLength], std::string& output, bool in
 
     if(include_dash)
     {
-        for (int i = 0; i < kUuidBinLength; ++i)
+        for (uint32_t i = 0; i < kUuidBinLength; ++i)
         {
             j = hexxing(output, j, input[i]);
 
@@ -69,7 +69,7 @@ bool hexlify_uuid(const char input[kUuidBinLength], std::string& output, bool in
     }
     else
     {
-        for (int i = 0; i < kUuidBinLength; ++i)
+        for (uint32_t i = 0; i < kUuidBinLength; ++i)
             j = hexxing(output, j, input[i]);
     }
 
@@ -81,7 +81,7 @@ bool unhexlify_uuid(const char input[kUuidLengthNoDash], std::string& output)
     output.resize(kUuidBinLength);
     int j = 0;
 
-    for (int i = 0; i < kUuidLengthNoDash; i += 2)
+    for (uint32_t i = 0; i < kUuidLengthNoDash; i += 2)
     {
         int highBits = hexchar_to_int(input[i]);
         int lowBits = hexchar_to_int(input[i + 1]);
